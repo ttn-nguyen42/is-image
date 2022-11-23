@@ -1,30 +1,37 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
 	hl "is-image/handler"
+	m "is-image/model"
+	reps "is-image/repository"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 /*
  * Application entry point
  */
-type application struct {
+type Application struct {
 	g *gin.Engine
 }
 
-func (p *application) _init() {
-	p.g = gin.Default()
+func NewApplication(engine *gin.Engine) *Application {
+	app := Application{
+		g: engine,
+	}
+	return &app
 }
 
-func (p *application) _start() {
-	p._init()
-	p._setHandler()
-	port := os.Getenv("PORT")
+func (p *Application) Start() {
+	p.RegisterService()
+	p.RegisterHandler()
+	port := os.Getenv(m.PORT)
 	if port == "" {
 		port = "8080"
 	}
@@ -32,9 +39,24 @@ func (p *application) _start() {
 	p.g.Run(fmt.Sprintf(":%s", port))
 }
 
+func (p *Application) RegisterService() {
+	mongoUrl := os.Getenv("MONGO_URL")
+	if mongoUrl == "" {
+		return
+	}
+	_, err := reps.NewResultCacheRepository(options.Client().ApplyURI(mongoUrl), context.TODO())
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+
 /*
  * Define routes
  */
-func (p *application) _setHandler() {
-	p.g.POST(fmt.Sprintf("%s%s", V1, uploadImage), hl.PostUploadImage)
+func (p *Application) RegisterHandler() {
+	p.g.POST(fmt.Sprintf("%s%s", m.V1, m.UploadImage), func(ctx *gin.Context) {
+		hl.PostUploadImage(ctx, &hl.PostUploadImageDependencies{
+			Repo: reps.GetResultCacheRepositoryInstance(),
+		})
+	})
 }

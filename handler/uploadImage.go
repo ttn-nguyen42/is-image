@@ -7,6 +7,7 @@ import (
 
 	hp "is-image/helper"
 	res "is-image/model/response"
+	repos "is-image/repository"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,10 +17,14 @@ const (
 	MB = 1024 * KB
 )
 
+type PostUploadImageDependencies struct {
+	Repo *repos.ResultCacheRepository
+}
+
 /*
  * POST - /api/v1/upload_image
  */
-func PostUploadImage(c *gin.Context) {
+func PostUploadImage(c *gin.Context, deps *PostUploadImageDependencies) {
 	formFile, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
 		c.JSON(
@@ -60,7 +65,8 @@ func PostUploadImage(c *gin.Context) {
 	if imageType == hp.JPEG {
 		resType = "jpeg/jpg"
 		resHash, err = hp.GetImageHashJpeg(formFile)
-	} else {
+	}
+	if imageType == hp.PNG {
 		resType = "png"
 		resHash, err = hp.GetImageHashPng(formFile)
 	}
@@ -75,6 +81,8 @@ func PostUploadImage(c *gin.Context) {
 	// Only uses the main part of the hash
 	hashParts := strings.Split(resHash, ":")
 	resHash = hashParts[1]
+	// Save result to database
+	// Check if dependency is nil or not
 	c.JSON(
 		http.StatusOK,
 		res.PostUploadImageResponse{

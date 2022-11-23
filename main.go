@@ -1,6 +1,8 @@
 package main
 
+import "github.com/gin-gonic/gin"
+
 func main() {
-	app := application{}
-	app._start()
+	app := NewApplication(gin.Default())
+	app.Start()
 }
