@@ -1,17 +1,29 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"is-image/core/defines"
+	"is-image/core/repositories"
+	"is-image/core/services"
+	"is-image/handlers"
 	"log"
 	"os"
 
-	hl "is-image/handler"
-	m "is-image/model"
-	reps "is-image/repository"
-
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+/*
+ * API versions
+ */
+const (
+	V1 = "/api/v1"
+)
+
+/*
+ * Paths
+ */
+const (
+	UploadImage = "/upload_image"
 )
 
 /*
@@ -19,19 +31,21 @@ import (
  */
 type Application struct {
 	g *gin.Engine
+
+	// Handlers
+	uploadImage *handlers.UploadImageHandlers
 }
 
-func NewApplication(engine *gin.Engine) *Application {
-	app := Application{
-		g: engine,
+func NewApplication() *Application {
+	return &Application{
+		g: gin.Default(),
 	}
-	return &app
 }
 
 func (p *Application) Start() {
 	p.RegisterService()
 	p.RegisterHandler()
-	port := os.Getenv(m.PORT)
+	port := os.Getenv(defines.PORT)
 	if port == "" {
 		port = "8080"
 	}
@@ -39,24 +53,19 @@ func (p *Application) Start() {
 	p.g.Run(fmt.Sprintf(":%s", port))
 }
 
+/*
+ * Register handlers
+ */
 func (p *Application) RegisterService() {
-	mongoUrl := os.Getenv("MONGO_URL")
-	if mongoUrl == "" {
-		return
-	}
-	_, err := reps.NewResultCacheRepository(options.Client().ApplyURI(mongoUrl), context.TODO())
-	if err != nil {
-		log.Println(err.Error())
-	}
+	/* /api/v1/upload_image */
+	uploadImageRepo := repositories.NewResultCacheRepository()
+	uploadImageService := services.NewUploadImageService(uploadImageRepo)
+	p.uploadImage = handlers.NewUploadImageHandlers(uploadImageService)
 }
 
 /*
  * Define routes
  */
 func (p *Application) RegisterHandler() {
-	p.g.POST(fmt.Sprintf("%s%s", m.V1, m.UploadImage), func(ctx *gin.Context) {
-		hl.PostUploadImage(ctx, &hl.PostUploadImageDependencies{
-			Repo: reps.GetResultCacheRepositoryInstance(),
-		})
-	})
+	p.g.POST(fmt.Sprintf("%s%s", V1, UploadImage), p.uploadImage.Post)
 }

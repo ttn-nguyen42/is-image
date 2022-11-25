@@ -1,4 +1,4 @@
-package model
+package responses
 
 /*
  * Response message sent back on errors
