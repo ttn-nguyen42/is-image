@@ -1,6 +1,9 @@
 package repositories
 
-import "is-image/core/models/entities"
+import (
+	"is-image/core/models/entities"
+	"is-image/db"
+)
 
 /*
  * Interfaces (ports)
@@ -11,10 +14,13 @@ type IResultCacheRepository interface {
 }
 
 type ResultCacheRepository struct {
+	db *db.MongoClient
 }
 
-func NewResultCacheRepository() *ResultCacheRepository {
-	return &ResultCacheRepository{}
+func NewResultCacheRepository(db *db.MongoClient) *ResultCacheRepository {
+	return &ResultCacheRepository{
+		db: db,
+	}
 }
 
 func (p *ResultCacheRepository) Find(id string) (*entities.ResultCache, error) {

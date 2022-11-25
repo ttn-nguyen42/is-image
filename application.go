@@ -5,6 +5,7 @@ import (
 	"is-image/core/defines"
 	"is-image/core/repositories"
 	"is-image/core/services"
+	"is-image/db"
 	"is-image/handlers"
 	"log"
 	"os"
@@ -57,8 +58,12 @@ func (p *Application) Start() {
  * Register handlers
  */
 func (p *Application) RegisterService() {
+	mongodb, err := db.NewMongoClient()
+	if err != nil {
+		panic("cannot connect to database")
+	}
 	/* /api/v1/upload_image */
-	uploadImageRepo := repositories.NewResultCacheRepository()
+	uploadImageRepo := repositories.NewResultCacheRepository(mongodb)
 	uploadImageService := services.NewUploadImageService(uploadImageRepo)
 	p.uploadImage = handlers.NewUploadImageHandlers(uploadImageService)
 }
